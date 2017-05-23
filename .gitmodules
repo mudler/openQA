@@ -1,0 +1,6 @@
+[submodule "openQA.wiki"]
+	path = openQA.wiki
+	url = git@github.com:mudler/openQA.wiki.git
+[submodule "wiki"]
+	path = wiki
+	url = git@github.com:mudler/openQA.wiki.git

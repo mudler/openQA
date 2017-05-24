@@ -112,18 +112,27 @@ sub read_config {
     $app->config->{auth}->{method} =~ s/\s//g;
 }
 
-sub _log_format {
-    my ($app, $time, $level, @lines) = @_;
-    return '[' . localtime($time) . "] [" . $app->log_name . ":$level] " . join "\n", @lines, '';
-}
-
 sub setup_logging {
     my ($app) = @_;
 
     my $config = $app->config;
     my $logfile = $ENV{OPENQA_LOGFILE} || $config->{logging}->{file};
-    $app->log->path($logfile);
-    $app->log->format(sub { _log_format($app, @_); });
+
+    if ($logfile) {
+        $app->log->path($logfile);
+        $app->log->format(
+            sub {
+                my ($time, $level, @lines) = @_;
+                return '[' . localtime($time) . "] [" . $app->log_name . ":$level] " . join "\n", @lines, '';
+            });
+    }
+    else {
+        $app->log->format(
+            sub {
+                my (undef, $level, @lines) = @_;
+                return '[' . $app->log_name . ":$level] " . join "\n", @lines, '';
+            });
+    }
 
     if ($logfile && $config->{logging}->{level}) {
         $app->log->level($config->{logging}->{level});

@@ -239,7 +239,8 @@ sub schedule {
                 # NOTE: $worker->connected is too much expensive since is over dbus, prefer dead.
                 # shuffle avoids starvation if a free worker keeps failing.
                 my @free_workers
-                  = shuffle(grep { !$_->dead } schema->resultset("Workers")->search({job_id => undef})->all());
+                  = shuffle(grep { !$_->dead and $_->is_free }
+                      schema->resultset("Workers")->search({job_id => undef})->all());
 
                 log_debug("\t Free workers: " . scalar(@free_workers) . "/$all_workers");
                 log_debug("\t Failure# ${failure}") if OpenQA::Scheduler::CONGESTION_CONTROL();

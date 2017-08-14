@@ -157,6 +157,18 @@ sub connected {
     return $ipc->websockets('ws_is_worker_connected', $self->id) ? 1 : 0;
 }
 
+sub is_free {
+    my ($self) = shift;
+    # XXX: This should be done by DB update.
+    my $ipc = OpenQA::IPC->ipc;
+    try {
+        return $ipc->websockets('ws_is_worker_free', $self->id) ? 1 : 0;
+    }
+    catch {
+        return 0;
+    }
+}
+
 sub unprepare_for_work {
     my $self = shift;
 

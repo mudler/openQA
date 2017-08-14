@@ -364,6 +364,16 @@ sub _is_job_considered_dead {
     return 1;
 }
 
+sub is_worker_free {
+    my $wid = shift;
+
+    return 1
+      if exists $worker_status->{$wid}
+      && exists $worker_status->{$wid}->{status}
+      && $worker_status->{$wid}->{status} eq "free";
+    return 0;
+}
+
 # Check if worker with job has been updated recently; if not, assume it
 # got stuck somehow and duplicate or incomplete the job
 sub _workers_checker {

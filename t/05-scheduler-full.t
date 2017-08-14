@@ -48,7 +48,7 @@ use Test::More;
 use Net::DBus qw(:typing);
 use Mojo::IOLoop::Server;
 use OpenQA::Test::Utils
-  qw(create_webapi create_websocket_server create_worker kill_service unstable_worker client_output);
+  qw(create_webapi create_websocket_server create_worker kill_service unstable_worker client_output unresponsive_worker);
 use Mojolicious;
 use File::Path qw(make_path remove_tree);
 use Cwd qw(abs_path getcwd);
@@ -135,6 +135,7 @@ subtest 'Scheduler worker job allocation' => sub {
 
     # Capture loop avoidance timer fired. back to default
     trigger_capture_event_loop($reactor);
+
     # Step 1
     ($allocated, $failures, $no_actions) = scheduler_step($reactor);
     is $failures,   1;
@@ -161,9 +162,8 @@ subtest 'Scheduler worker job allocation' => sub {
 
 
     ($allocated, $failures, $no_actions) = scheduler_step($reactor);
-    #    is @$running, 0, 'Scheduler did nothing since jobs failed immediately';
     is $failures,   0;
-    is $no_actions, 2;
+    is $no_actions, 1;
     is @$allocated, 0;
 
     dead_workers($schema);
@@ -183,92 +183,98 @@ subtest 'Simulation of unstable workers' => sub {
 
     ($allocated, $failures, $no_actions) = scheduler_step($reactor); # Will try to allocate to previous worker and fail!
     is $failures,   1;
-    is $no_actions, 3;
+    is $no_actions, 2;
 
-
-
-    #Now let's simulate unstable workers :)
-    # 3 is the instance, and 7 is ticks that have to be are performed
-    # In this way the worker will associate, will be registered but won't close the ws connection.
-    my $unstable_w_pid = unstable_worker($k->key, $k->secret, "http://localhost:$mojoport", 3, 7);
+# Now let's simulate unstable workers :)
+# In this way the worker will associate, will be registered but won't perform any operation - will just send statuses that is free.
+    my $unstable_w_pid = unresponsive_worker($k->key, $k->secret, "http://localhost:$mojoport", 3);
 
     ($allocated, $failures, $no_actions) = scheduler_step($reactor);
     is $failures,   0;
     is $no_actions, 0;
     is @$allocated, 1;
+    is @{$allocated}[0]->{job},    99982;
+    is @{$allocated}[0]->{worker}, 5;
 
+    for (0 .. 10) {
+        last if $schema->resultset("Jobs")->find(99982)->state eq OpenQA::Schema::Result::Jobs::SCHEDULED;
+        sleep 2;
+    }
+
+    is $schema->resultset("Jobs")->find(99982)->state, OpenQA::Schema::Result::Jobs::SCHEDULED,
+      "If worker declares to be free - reschedule assigned job to that worker";
     kill_service($unstable_w_pid, 1);
-
-    #
-    # ($allocated, $duplicates, $failures) = scheduler_step($reactor);
-    # is @$allocated,  0;
-    # is @$duplicates, 0;
-    # is @{$duplicates}[0]->{old}, 99982;
-    # is @{$duplicates}[0]->{new}, 99983;
-    # is $schema->resultset("Jobs")->find(99982)->result, OpenQA::Schema::Result::Jobs::INCOMPLETE;
-    #
-    # is $failures, 2;
-    #
-    #  $schema->resultset("Jobs")->find(99983)->delete;
-    dead_workers($schema);
-};
-
-subtest 'Simulation of running workers (normal)' => sub {
-    dead_workers($schema);
+    sleep 5;
 
     scheduler_step($reactor);
-    scheduler_step($reactor);
-
-
-    my $allocated;
-    my $failures;
-    my $no_actions;
-
-
-    ($allocated, $failures, $no_actions) = scheduler_step($reactor);
-    is $failures,   1;
-    is $no_actions, 3;
-    is @$allocated, 0;
-
-    # Capture loop avoidance timer fired. back to default
-    trigger_capture_event_loop($reactor);
-
-    ($allocated, $failures, $no_actions) = scheduler_step($reactor);
-    is $failures,   0;
-    is $no_actions, 1;
-    is @$allocated, 0;
-
+    reset_tick($reactor);
     dead_workers($schema);
-    my $JOB_SETUP
-      = 'ISO=Core-7.2.iso DISTRI=tinycore ARCH=i386 QEMU=i386 QEMU_NO_KVM=1 '
-      . 'FLAVOR=flavor BUILD=1 MACHINE=coolone QEMU_NO_TABLET=1 INTEGRATION_TESTS=1'
-      . 'QEMU_NO_FDC_SET=1 CDMODEL=ide-cd HDDMODEL=ide-drive VERSION=1 TEST=core PUBLISH_HDD_1=core-hdd.qcow2';
-    # schedule job
-    #diag client_output($k->key, $k->secret, "http://localhost:$mojoport", "jobs post $JOB_SETUP");
-    my @latest = $schema->resultset("Jobs")->latest_jobs;
 
-    shift(@latest)->auto_duplicate();
+    # Same job, since was put in scheduled state again.
+    $unstable_w_pid = unstable_worker($k->key, $k->secret, "http://localhost:$mojoport", 3, 8);
     sleep 5;
 
     ($allocated, $failures, $no_actions) = scheduler_step($reactor);
     is $failures,   0;
-    is $no_actions, $failures;
-    is @$allocated, 0;
-
-    #reset_tick($reactor);
-
-    my $w1_pid = create_worker($k->key, $k->secret, "http://localhost:$mojoport", 1);
-    sleep 10;
-
-    ($allocated, $failures, $no_actions) = scheduler_step($reactor);
-    is @$allocated, 1;
-    is @{$allocated}[0]->{job},    99983;
-    is @{$allocated}[0]->{worker}, 3;
     is $no_actions, 0;
-    is $failures,   0;
+    is @$allocated, 1;
+    is @{$allocated}[0]->{job},    99982;
+    is @{$allocated}[0]->{worker}, 5;
+
+    kill_service($unstable_w_pid, 1);
+    ok $schema->resultset("Jobs")->find(99982)->state eq OpenQA::Schema::Result::Jobs::ASSIGNED;
+
+    $unstable_w_pid = unstable_worker($k->key, $k->secret, "http://localhost:$mojoport", 3, 8);
+
+    for (0 .. 10) {
+        last if $schema->resultset("Jobs")->find(99982)->state eq OpenQA::Schema::Result::Jobs::DONE;
+        sleep 2;
+    }
+
+    is $schema->resultset("Jobs")->find(99982)->state, OpenQA::Schema::Result::Jobs::DONE,
+      "Job is done - worker re-connected";
+    is $schema->resultset("Jobs")->find(99982)->result, OpenQA::Schema::Result::Jobs::INCOMPLETE,
+      "Job result is incomplete - worker re-connected";
 
     dead_workers($schema);
-    kill_service($w1_pid, 1);
+    kill_service($unstable_w_pid, 1);
+};
+
+subtest 'Simulation of heavy unstable load' => sub {
+    my $allocated;
+    my $failures;
+    my $no_actions;
+    my @workers;
+    dead_workers($schema);
+    my @duplicated;
+
+    push(@duplicated, $_->auto_duplicate()) for $schema->resultset("Jobs")->latest_jobs;
+
+    push(@workers, unresponsive_worker($k->key, $k->secret, "http://localhost:$mojoport", $_)) for (1 .. 50);
+    sleep 5;
+
+    ($allocated, $failures, $no_actions) = scheduler_step($reactor); # Will try to allocate to previous worker and fail!
+    is @$allocated, 10, "Allocated maximum number of jobs that could have been allocated";
+    is $failures, 2, "Failure count should be to 2, since we took too much time to schedule";
+    is get_scheduler_tick($reactor), 2**$failures * $ENV{OPENQA_SCHEDULER_TIMESLOT}, "Tick is at the expected value";
+    my %jobs;
+    my %w;
+    foreach my $j (@$allocated) {
+        ok !$jobs{$j->{job}}, "Job#" . $j->{job} . " not allocated already";
+        ok !$w{$j->{worker}}, "Worker#" . $j->{worker} . " not used already";
+        $w{$j->{worker}}++;
+        $jobs{$j->{job}}++;
+    }
+
+    for my $dup (@duplicated) {
+        for (0 .. 10) {
+            last if $dup->state eq OpenQA::Schema::Result::Jobs::SCHEDULED;
+            sleep 2;
+        }
+        is $dup->state, OpenQA::Schema::Result::Jobs::SCHEDULED, "Job back to scheduled state";
+    }
+    dead_workers($schema);
+    kill_service($_, 1) for @workers;
 };
 
 kill_service($_) for ($wspid, $webapi);

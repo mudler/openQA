@@ -242,6 +242,15 @@ sub schedule {
                   = shuffle(grep { !$_->dead } schema->resultset("Workers")->search({job_id => undef})->all());
 
                 log_debug("\t Free workers: " . scalar(@free_workers) . "/$all_workers");
+
+                # Cut the workers if we have a limit set since we didn't performed any DB update yet
+                @free_workers = splice @free_workers, 0, OpenQA::Scheduler::MAX_WORKER_ALLOCATION()
+                  if (OpenQA::Scheduler::MAX_WORKER_ALLOCATION() > 0
+                    && scalar(@free_workers) > OpenQA::Scheduler::MAX_WORKER_ALLOCATION());
+
+                log_debug("\t Trying to allocate jobs for: " . scalar(@free_workers) . " worker(s)");
+
+
                 log_debug("\t Failure# ${failure}") if OpenQA::Scheduler::CONGESTION_CONTROL();
 
                 if (@free_workers == 0) {
@@ -416,7 +425,8 @@ sub schedule {
 
     my $elapsed_rounded = sprintf("%.5f", (time - $start_time));
     log_debug "Scheduler took ${elapsed_rounded}s to perform operations and allocated "
-      . scalar(@successfully_allocated) . " jobs";
+      . scalar(@successfully_allocated)
+      . " job(s)";
 
     my $exceeded_timer = ((${elapsed_rounded} * 1000) > OpenQA::Scheduler::SCHEDULE_TICK_MS());
     if ($exceeded_timer && $hard_busy) {

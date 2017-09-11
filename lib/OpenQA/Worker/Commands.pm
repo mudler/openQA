@@ -124,7 +124,6 @@ sub websocket_commands {
             # ignore keepalives, but dont' report as unknown
         }
         elsif ($type eq 'grab_job') {
-            state $check_job_running;
             state $job_in_progress;
 
             my $job = $json->{job};
@@ -134,15 +133,12 @@ sub websocket_commands {
             }
 
             return unless $job;
-            return if $check_job_running->{$host};
 
             $job_in_progress = 1;
-            $check_job_running->{$host} = 1;
             Mojo::IOLoop->singleton->once(
                 "stop_job" => sub {
                     log_debug("Build finished, setting us free to pick up new jobs");
                     $job_in_progress = 0;
-                    $check_job_running->{$host} = 0;
                 });
 
             if ($job && $job->{id}) {
@@ -164,7 +160,6 @@ sub websocket_commands {
             }
             else {
                 $job_in_progress = 0;
-                $check_job_running->{$host} = 0;
             }
         }
         else {

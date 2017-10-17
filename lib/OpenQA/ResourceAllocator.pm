@@ -126,8 +126,7 @@ dbus_method('validate_workerid', ['uint32'], ['bool']);
 sub validate_workerid {
     my ($self, $args) = @_;
     my $res = exists_worker($self->schema, $args);
-    return 1 if ($res);
-    return 0;
+    return !!$res;
 }
 
 ## Lock API
@@ -135,54 +134,44 @@ dbus_method('mutex_create', ['string', 'uint32'], ['bool']);
 sub mutex_create {
     my ($self, @args) = @_;
     my $res = safe_call 'OpenQA::Resource::Locks' => create => @args;
-    return 0 if @$res == 0;
-    return 0 unless @$res[0] && defined @$res[0];
-    return 1;
+    return !!@$res[0];
 }
 
 dbus_method('mutex_lock', ['string', 'uint32', 'string'], ['int32']);
 sub mutex_lock {
     my ($self, @args) = @_;
     my $res = safe_call 'OpenQA::Resource::Locks' => lock => @args;
-    return 0 if @$res == 0;
-    return 0 unless @$res[0] && defined @$res[0];
-    return 1;
+    return @$res[0] if !!@$res[0];
+    return 0;
 }
 
 dbus_method('mutex_unlock', ['string', 'uint32'], ['int32']);
 sub mutex_unlock {
     my ($self, @args) = @_;
     my $res = safe_call 'OpenQA::Resource::Locks' => unlock => @args;
-    return 0 if @$res == 0;
-    return 0 unless @$res[0] && defined @$res[0];
-    return @$res[0];
+    return @$res[0] if !!@$res[0];
+    return 0;
 }
 
 dbus_method('barrier_create', ['string', 'uint32', 'uint32'], ['bool']);
 sub barrier_create {
     my ($self, @args) = @_;
     my $res = safe_call 'OpenQA::Resource::Locks' => barrier_create => @args;
-    return 0 if @$res == 0;
-    return 0 unless @$res[0] && defined @$res[0];
-    return 1;
+    return !!@$res[0];
 }
 
 dbus_method('barrier_wait', ['string', 'uint32', 'string'], ['int32']);
 sub barrier_wait {
     my ($self, @args) = @_;
     my $res = safe_call 'OpenQA::Resource::Locks' => barrier_wait => @args;
-    return 0 if @$res == 0;
-    return 0 unless @$res[0] && defined @$res[0];
-    return @$res[0];
+    return !!@$res[0];
 }
 
 dbus_method('barrier_destroy', ['string', 'uint32', 'string'], ['bool']);
 sub barrier_destroy {
     my ($self, @args) = @_;
     my $res = safe_call 'OpenQA::Resource::Locks' => barrier_destroy => @args;
-    return 0 if @$res == 0;
-    return 0 unless @$res[0] && defined @$res[0];
-    return 1;
+    return !!@$res[0];
 }
 
 *instance = \&new;

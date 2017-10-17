@@ -81,6 +81,12 @@ sub main {
                 OpenQA::Worker::Common::register_worker($h, $dir, $host_settings->{$h}{TESTPOOLSERVER}, $shared_cache);
             });
     }
+    Mojo::IOLoop->on(
+        error => sub {
+            my ($reactor, $err) = @_;
+            log_error "Error: $err";
+            OpenQA::Worker::Jobs::_reset_state();
+        });
 
     # start event loop - this will block until stop is called
     Mojo::IOLoop->start;

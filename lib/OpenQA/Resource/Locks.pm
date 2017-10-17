@@ -36,10 +36,10 @@ use OpenQA::Utils qw(wakeup_scheduler log_debug);
 #
 sub _get_lock {
     my ($name, $jobid, $where) = @_;
-    return unless defined $name && defined $jobid;
+    return 0 unless defined $name && defined $jobid;
     my $schema = OpenQA::ResourceAllocator->instance->schema();
     my $job = $schema->resultset('Jobs')->single({id => $jobid});
-    return unless $job;
+    return 0 unless $job;
 
     # We need to get owner of the lock
     # owner can be one of the parents or ourselves if we have no parent
@@ -99,13 +99,13 @@ sub create {
     my ($name, $jobid) = @_;
     my $lock = _get_lock($name, $jobid, 'all');
     # nothing if lock already exist
-    return if $lock;
-    return unless defined $name && defined $jobid;
+    return 0 if $lock;
+    return 0 unless defined $name && defined $jobid;
 
     # if no lock so far, there is no lock, create one as unlocked
     my $schema = OpenQA::ResourceAllocator->instance->schema();
     $lock = $schema->resultset('JobLocks')->create({name => $name, owner => $jobid});
-    return unless $lock;
+    return 0 unless $lock;
     return 1;
 }
 
@@ -114,12 +114,13 @@ sub create {
 
 sub barrier_create {
     my ($name, $jobid, $expected_jobs) = @_;
-    return unless $name && $jobid && $expected_jobs;
+    return 0 unless $name && $jobid && $expected_jobs;
     my $barrier = _get_lock($name, $jobid, 'all');
-    return if $barrier;
+    return 0 if $barrier;
 
     my $schema = OpenQA::ResourceAllocator->instance->schema();
     $barrier = $schema->resultset('JobLocks')->create({name => $name, owner => $jobid, count => $expected_jobs});
+    return 0 unless $barrier;
     return $barrier;
 }
 
@@ -141,10 +142,10 @@ sub barrier_wait {
 
 sub barrier_destroy {
     my ($name, $jobid, $where) = @_;
-    return unless $name && $jobid;
+    return 0 unless $name && $jobid;
     my $barrier = _get_lock($name, $jobid, $where);
-    return unless $barrier;
-    $barrier->delete;
+    return 0 unless $barrier;
+    return $barrier->delete;
 }
 
 1;

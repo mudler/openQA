@@ -326,9 +326,9 @@ sub create_artefact {
         return $self->render(text => "FAILED");
     }
     elsif ($self->param('asset')) {
-        my $abs = $job->create_asset($self->param('file'), $self->param('asset'));
-        $self->render(json => {temporary => $abs});
-        return;
+        my $e = $job->create_asset($self->param('file'), $self->param('asset'));
+        return $self->render(json => {error => 'Failed receiving chunk: ' . $e}, status => 404) if $e;
+        return $self->render(json => {status => 'ok'});
     }
     if ($job->create_artefact($self->param('file'), $self->param('ulog'))) {
         $self->render(text => "OK");

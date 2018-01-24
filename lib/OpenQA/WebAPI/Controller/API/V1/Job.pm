@@ -22,6 +22,7 @@ use OpenQA::Utils 'find_job';
 use Try::Tiny;
 use DBIx::Class::Timestamps 'now';
 use Mojo::Asset::Memory;
+use Mojo::File 'path';
 
 sub list {
     my $self = shift;
@@ -328,7 +329,7 @@ sub create_artefact {
     }
     elsif ($self->param('asset')) {
         my $e = $job->create_asset($self->param('file'), $self->param('asset'));
-        return $self->render(json => {error => 'Failed receiving chunk: ' . $e}, status => 404) if $e;
+        return $self->render(json => {error => 'Failed receiving chunk: ' . $e}, status => 400) if $e;
         return $self->render(json => {status => 'ok'});
     }
     if ($job->create_artefact($self->param('file'), $self->param('ulog'))) {
@@ -339,17 +340,31 @@ sub create_artefact {
     }
 }
 
-sub ack_temporary {
+sub upload_state {
     my ($self) = @_;
+    my $file   = $self->param('filename');
+    my $state  = $self->param('state');
+    my $scope  = $self->param('scope');
+    my $job_id = $self->stash('jobid');
 
-    my $temp = $self->param('temporary');
-    if (-f $temp) {
-        $self->app->log->debug("ACK $temp");
-        if ($temp =~ /^(.*)\.TEMP-[^\/]*$/) {
-            my $asset = $1;
-            $self->app->log->debug("RENAME $temp to $asset");
-            rename($temp, $asset);
-        }
+    my $type;
+    $type = 'iso' if $file =~ /\.iso$/;
+    $type = 'hdd' if $file =~ /\.(?:qcow2|raw|vhd|vhdx)$/;
+    $type //= 'other';
+
+    $file = sprintf("%08d-%s", $job_id, $file) if $scope ne 'public';
+
+    my $fpath = join('/', $OpenQA::Utils::assetdir, $type);
+
+    my $suffix = '.CHUNKS';
+    my $abs = path($fpath, $file . $suffix);
+
+    if ($state eq 'fail') {
+        $self->app->log->debug("FAIL chunk upload of $file");
+        path($fpath)->list_tree({dir => 1})->each(
+            sub {
+                $_->remove_tree if -d $_ && $_->basename eq $file . $suffix;
+            });
     }
     $self->render(text => "OK");
 }

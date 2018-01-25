@@ -217,7 +217,7 @@ is(calculate_file_md5($rp), "feeebd34e507d3a1641c774da135be77", "md5sum matches"
 $rp = "t/data/openqa/share/factory/hdd/hdd_image.qcow2";
 unlink($rp);
 $post = $t->post_ok('/api/v1/jobs/99963/artefact' => form =>
-      {file => {file => $filename, filename => 'hdd_image.qcow2'}, asset => 'public'})->status_is(400);
+      {file => {file => $filename, filename => 'hdd_image.qcow2'}, asset => 'public'})->status_is(500);
 my $error = $post->tx->res->json->{error};
 like($error, qr/Byte order is not compatible/);
 

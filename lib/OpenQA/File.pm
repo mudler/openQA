@@ -47,11 +47,24 @@ sub verify_content {
 sub split {
     my ($self, $chunk_size) = @_;
     $chunk_size //= 100000;
-    return OpenQA::Files->new($self) unless $chunk_size < $self->size;
+    croak 'You need to define a file' unless defined $self->file();
+    $self->file(Mojo::File->new($self->file())) unless ref $self->file eq 'Mojo::File';
+
+    my $total_cksum = $self->_sum($self->file->slurp);
+
+    return OpenQA::Files->new(
+        $self->new(
+            total       => 1,
+            end         => $self->size(),
+            start       => 0,
+            index       => 1,
+            file        => $self->file(),
+            total_cksum => $total_cksum,
+        )) unless $chunk_size < $self->size;
+
     my $residual    = $self->size() % $chunk_size;
     my $total       = my $n_chunks = _chunk_size($self->size(), $chunk_size);
     my $files       = OpenQA::Files->new();
-    my $total_cksum = $self->_sum($self->file->slurp);
 
     $n_chunks-- if $residual;
 
@@ -95,6 +108,9 @@ sub read {
 
 sub _seek_content {
     my ($self, $file_name) = @_;
+    croak 'No start point is defined' unless defined $self->start();
+    croak 'No end point is defined'   unless defined $self->end();
+
     CORE::open my $file, '<', $file_name or croak "Can't open file $file_name: $!";
     my $ret = my $content = '';
     sysseek($file, $self->start(), 1);
@@ -105,6 +121,9 @@ sub _seek_content {
 
 sub _write_content {
     my ($self, $file_name) = @_;
+    croak 'No start point is defined' unless defined $self->start();
+    croak 'No end point is defined'   unless defined $self->end();
+
     Mojo::File->new($file_name)->spurt('') unless -e $file_name;
     CORE::open my $file, '+<', $file_name or croak "Can't open file $file_name: $!";
     my $ret;

@@ -363,7 +363,7 @@ sub upload_state {
 
     if ($state eq 'fail') {
         $self->app->log->debug("FAIL chunk upload of $file");
-        path($fpath)->list_tree({dir => 1})->each(
+        path($OpenQA::Utils::assetdir, 'tmp')->list_tree({dir => 1})->each(
             sub {
                 $_->remove_tree if -d $_ && $_->basename eq $file . $suffix;
             });

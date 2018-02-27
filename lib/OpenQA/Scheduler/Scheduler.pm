@@ -562,8 +562,9 @@ sub filter_jobs {
     my @filtered_jobs = @jobs;
     my @delete;
     my $allocated_tests;
+    my @k = qw(ARCH DISTRI BUILD FLAVOR);
 
-    $allocated_tests->{$_->{test}}++ for @jobs;
+    $allocated_tests->{$_->{test} . join(".", @{$_->{settings}}{@k})}++ for @jobs;
 
     foreach my $j (@jobs) {
         next unless exists $j->{settings}->{PARALLEL_CLUSTER};
@@ -574,12 +575,13 @@ sub filter_jobs {
             })->first->dependencies;
 
         @filtered_jobs = grep { $_->{id} ne $j->{id} } @filtered_jobs
-          if grep { !exists $allocated_tests->{$_} }
+          if grep { !exists $allocated_tests->{$_ . join(".", @{$j->{settings}}{@k})} }
           map { schema->resultset("Jobs")->search({id => $_,})->first->TEST } @{$deps->{children}->{Parallel}};
 
         next unless exists $j->{settings}->{PARALLEL_WITH};
         @filtered_jobs = grep { $_->{id} ne $j->{id} } @filtered_jobs
-          if grep { !exists $allocated_tests->{$_} } split(/,/, $j->{settings}->{PARALLEL_WITH});
+          if grep { !exists $allocated_tests->{$_ . join(".", @{$j->{settings}}{@k})} }
+          split(/,/, $j->{settings}->{PARALLEL_WITH});
     }
 
     return @filtered_jobs;

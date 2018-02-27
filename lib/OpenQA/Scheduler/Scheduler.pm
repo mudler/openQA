@@ -478,7 +478,7 @@ sub _build_search_query {
                 },
                 -and => {
                     dependency => OpenQA::Schema::Result::JobDependencies::PARALLEL,
-                    state      => OpenQA::Schema::Result::Jobs::SCHEDULED,
+                    state      => OpenQA::Schema::Result::Jobs::RUNNING,
                 },
             ],
         },

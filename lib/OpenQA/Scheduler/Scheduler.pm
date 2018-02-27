@@ -475,11 +475,7 @@ sub _build_search_query {
                 -and => {
                     dependency => OpenQA::Schema::Result::JobDependencies::CHAINED,
                     state      => {-not_in => [OpenQA::Schema::Result::Jobs::FINAL_STATES]},
-                },
-                -and => {
-                    dependency => OpenQA::Schema::Result::JobDependencies::PARALLEL,
-                    state      => OpenQA::Schema::Result::Jobs::RUNNING,
-                },
+                }
             ],
         },
         {

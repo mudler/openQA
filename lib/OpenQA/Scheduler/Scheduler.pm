@@ -570,7 +570,7 @@ sub filter_jobs {
     $allocated_tests->{$_->{test}}++ for @jobs;
 
     foreach my $j (@jobs) {
-        next unless exists $j->{settings}->{PARALLEL_CLUSTER};
+        #next unless exists $j->{settings}->{PARALLEL_CLUSTER};
 
         my $deps = schema->resultset("Jobs")->search(
             {

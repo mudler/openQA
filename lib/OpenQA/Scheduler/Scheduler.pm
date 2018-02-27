@@ -286,6 +286,8 @@ sub schedule {
       if (OpenQA::Scheduler::MAX_JOB_ALLOCATION() > 0
         && scalar(@allocated_jobs) > OpenQA::Scheduler::MAX_JOB_ALLOCATION());
 
+    @allocated_jobs = filter_jobs(@allocated_jobs);
+
     my @successfully_allocated;
 
     foreach my $allocated (@allocated_jobs) {
@@ -556,6 +558,35 @@ sub _job_allocate {
     log_debug("Seems we really failed updating the DB status." . pp($job->to_hash));
 
     return 0;
+}
+
+
+sub filter_jobs {
+    my @jobs          = @_;
+    my @filtered_jobs = @jobs;
+    my @delete;
+    my $allocated_tests;
+
+    $allocated_tests->{$_->{test}}++ for @jobs;
+
+    foreach my $j (@jobs) {
+        next unless exists $j->{settings}->{PARALLEL_CLUSTER};
+
+        my $deps = schema->resultset("Jobs")->search(
+            {
+                id => $j->{id},
+            })->first->dependencies;
+
+        @filtered_jobs = grep { $_->{id} ne $j->{id} } @filtered_jobs
+          if grep { !exists $allocated_tests->{$_} }
+          map { schema->resultset("Jobs")->search({id => $_,})->first->TEST } @{$deps->{children}->{Parallel}};
+
+        next unless exists $j->{settings}->{PARALLEL_WITH};
+        @filtered_jobs = grep { $_->{id} ne $j->{id} } @filtered_jobs
+          if grep { !exists $allocated_tests->{$_} } split(/,/, $j->{settings}->{PARALLEL_WITH});
+    }
+
+    return @filtered_jobs;
 }
 
 =head2 job_grab

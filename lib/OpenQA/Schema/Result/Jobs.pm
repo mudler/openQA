@@ -614,6 +614,14 @@ sub can_be_duplicated {
     return 1;
 }
 
+sub was_scheduled {
+    my ($self) = @_;
+
+    my $state = $self->state;
+    return unless (grep { /$state/ } (EXECUTION_STATES, FINAL_STATES));
+    return 1;
+}
+
 =head2 duplicate
 
 =over

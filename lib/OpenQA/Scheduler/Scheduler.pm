@@ -468,14 +468,21 @@ sub _reschedule {
 }
 
 sub _build_search_query {
-    my $worker  = shift;
-    my $blocked = schema->resultset("JobDependencies")->search(
+    my $worker     = shift;
+    my $allocating = shift;
+    my $blocked    = schema->resultset("JobDependencies")->search(
         {
             -or => [
                 -and => {
                     dependency => OpenQA::Schema::Result::JobDependencies::CHAINED,
                     state      => {-not_in => [OpenQA::Schema::Result::Jobs::FINAL_STATES]},
-                }
+                },
+                (
+                    -and => {
+                        dependency => OpenQA::Schema::Result::JobDependencies::PARALLEL,
+                        state      => OpenQA::Schema::Result::Jobs::SCHEDULED,
+                    }
+                ) x !!($allocating),
             ],
         },
         {
@@ -673,7 +680,7 @@ sub job_grab {
                     my $search = schema->resultset("Jobs")->search(
                         {
                             state => OpenQA::Schema::Result::Jobs::SCHEDULED,
-                            id    => [_build_search_query($worker)],
+                            id    => [_build_search_query($worker, $allocate)],
                         },
                         {order_by => {-asc => [qw(priority id)]}});
 

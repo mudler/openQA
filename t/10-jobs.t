@@ -630,8 +630,8 @@ subtest 'job PARALLEL_WITH' => sub {
     use OpenQA::Schema::Result::JobDependencies;
 
     my %_settings = %settings;
-    $_settings{TEST} = 'A';
-    #  $_settings{PARALLEL_WITH}    = 'B,C,D';
+    $_settings{TEST}             = 'A';
+    $_settings{PARALLEL_WITH}    = 'B,C,D';
     $_settings{PARALLEL_CLUSTER} = '1';
     my $jobA = _job_create(\%_settings);
 
@@ -657,27 +657,27 @@ subtest 'job PARALLEL_WITH' => sub {
     $_settings{TEST}          = 'E';
     $_settings{PARALLEL_WITH} = 'A,B,C';
     my $jobE = _job_create(\%_settings);
-
-    $jobA->children->create(
-        {
-            child_job_id => $jobB->id,
-            dependency   => OpenQA::Schema::Result::JobDependencies->PARALLEL,
-        });
-    $jobA->children->create(
-        {
-            child_job_id => $jobC->id,
-            dependency   => OpenQA::Schema::Result::JobDependencies->PARALLEL,
-        });
-    $jobA->children->create(
-        {
-            child_job_id => $jobD->id,
-            dependency   => OpenQA::Schema::Result::JobDependencies->PARALLEL,
-        });
-    $jobA->children->create(
-        {
-            child_job_id => $jobE->id,
-            dependency   => OpenQA::Schema::Result::JobDependencies->PARALLEL,
-        });
+    #
+    # $jobA->children->create(
+    #     {
+    #         child_job_id => $jobB->id,
+    #         dependency   => OpenQA::Schema::Result::JobDependencies->PARALLEL,
+    #     });
+    # $jobA->children->create(
+    #     {
+    #         child_job_id => $jobC->id,
+    #         dependency   => OpenQA::Schema::Result::JobDependencies->PARALLEL,
+    #     });
+    # $jobA->children->create(
+    #     {
+    #         child_job_id => $jobD->id,
+    #         dependency   => OpenQA::Schema::Result::JobDependencies->PARALLEL,
+    #     });
+    # $jobA->children->create(
+    #     {
+    #         child_job_id => $jobE->id,
+    #         dependency   => OpenQA::Schema::Result::JobDependencies->PARALLEL,
+    #     });
     %_settings = %settings;
     $_settings{TEST} = 'F';
     my $jobF = _job_create(\%_settings);

@@ -478,7 +478,7 @@ sub _build_search_query {
                 },
                 -and => {
                     dependency => OpenQA::Schema::Result::JobDependencies::PARALLEL,
-                    state      => OpenQA::Schema::Result::Jobs::RUNNING,
+                    state      => OpenQA::Schema::Result::Jobs::SCHEDULED,
                 },
             ],
         },
@@ -572,14 +572,14 @@ sub filter_jobs {
     foreach my $j (@jobs) {
         next unless exists $j->{settings}->{PARALLEL_CLUSTER};
 
-        my $deps = schema->resultset("Jobs")->search(
-            {
-                id => $j->{id},
-            })->first->dependencies;
-
-        @filtered_jobs = grep { $_->{id} ne $j->{id} } @filtered_jobs
-          if grep { !exists $allocated_tests->{$_} }
-          map { schema->resultset("Jobs")->search({id => $_,})->first->TEST } @{$deps->{children}->{Parallel}};
+        # my $deps = schema->resultset("Jobs")->search(
+        #     {
+        #         id => $j->{id},
+        #     })->first->dependencies;
+        #
+        # @filtered_jobs = grep { $_->{id} ne $j->{id} } @filtered_jobs
+        #   if grep { !exists $allocated_tests->{$_} }
+        #   map { schema->resultset("Jobs")->search({id => $_,})->first->TEST } @{$deps->{children}->{Parallel}};
 
         next unless exists $j->{settings}->{PARALLEL_WITH};
         @filtered_jobs = grep { $_->{id} ne $j->{id} } @filtered_jobs

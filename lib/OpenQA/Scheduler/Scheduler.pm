@@ -571,24 +571,31 @@ sub filter_jobs {
     my $allocated_tests;
     my @k = qw(ARCH DISTRI BUILD FLAVOR);
 
-    $allocated_tests->{$_->{test} . join(".", @{$_->{settings}}{@k})}++ for @jobs;
+    try {
+        $allocated_tests->{$_->{test} . join(".", @{$_->{settings}}{@k})}++ for @jobs;
 
-    foreach my $j (@jobs) {
-        next unless exists $j->{settings}->{PARALLEL_CLUSTER};
+        foreach my $j (@jobs) {
+            next unless exists $j->{settings}->{PARALLEL_CLUSTER};
 
 
-        @filtered_jobs = grep { $_->{id} ne $j->{id} } @filtered_jobs
-          if grep { !exists $allocated_tests->{$_ . join(".", @{$j->{settings}}{@k})} } (
-            (
-                map { schema->resultset("Jobs")->search({id => $_,})->first->TEST } @{
-                    schema->resultset("Jobs")->search(
-                        {
-                            id => $j->{id},
-                        }
-                    )->first->dependencies->{children}->{Parallel}}
-            ),
-            exists $j->{settings}->{PARALLEL_WITH} ? split(/,/, $j->{settings}->{PARALLEL_WITH}) : ());
+            @filtered_jobs = grep { $_->{id} ne $j->{id} } @filtered_jobs
+              if grep { !exists $allocated_tests->{$_ . join(".", @{$j->{settings}}{@k})} } (
+                (
+                    map { schema->resultset("Jobs")->search({id => $_,})->first->TEST } @{
+                        schema->resultset("Jobs")->search(
+                            {
+                                id => $j->{id},
+                            }
+                        )->first->dependencies->{children}->{Parallel}}
+                ),
+                exists $j->{settings}->{PARALLEL_WITH} ? split(/,/, $j->{settings}->{PARALLEL_WITH}) : ());
+        }
     }
+    catch {
+        log_debug("Failed job filtering, error: " . $_);
+        @filtered_jobs = @jobs;
+
+    };
 
     return @filtered_jobs;
 }

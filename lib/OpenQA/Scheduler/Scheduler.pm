@@ -289,12 +289,12 @@ sub schedule {
         $failure++ if OpenQA::Scheduler::CONGESTION_CONTROL();
     };
 
+    @allocated_jobs = filter_jobs(@allocated_jobs);
+
     # Cut the jobs if we have a limit set since we didn't performed any DB update yet
     @allocated_jobs = splice @allocated_jobs, 0, OpenQA::Scheduler::MAX_JOB_ALLOCATION()
       if (OpenQA::Scheduler::MAX_JOB_ALLOCATION() > 0
         && scalar(@allocated_jobs) > OpenQA::Scheduler::MAX_JOB_ALLOCATION());
-
-    @allocated_jobs = filter_jobs(@allocated_jobs);
 
     my @successfully_allocated;
 
@@ -486,12 +486,12 @@ sub _build_search_query {
                     dependency => OpenQA::Schema::Result::JobDependencies::CHAINED,
                     state      => {-not_in => [OpenQA::Schema::Result::Jobs::FINAL_STATES]},
                 },
-                (
-                    -and => {
-                        dependency => OpenQA::Schema::Result::JobDependencies::PARALLEL,
-                        state      => OpenQA::Schema::Result::Jobs::SCHEDULED,
-                    }
-                ) x !!($allocate),
+                -and => {
+                    dependency    => OpenQA::Schema::Result::JobDependencies::PARALLEL,
+                    state         => OpenQA::Schema::Result::Jobs::SCHEDULED,
+                    parent_job_id => {-not_in => $allocating},
+
+                }
             ],
         },
         {

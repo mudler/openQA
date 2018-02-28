@@ -576,14 +576,17 @@ sub filter_jobs {
     foreach my $j (@jobs) {
         next unless exists $j->{settings}->{PARALLEL_CLUSTER};
 
-        my $deps = schema->resultset("Jobs")->search(
-            {
-                id => $j->{id},
-            })->first->dependencies;
 
         @filtered_jobs = grep { $_->{id} ne $j->{id} } @filtered_jobs
           if grep { !exists $allocated_tests->{$_ . join(".", @{$j->{settings}}{@k})} } (
-            (map { schema->resultset("Jobs")->search({id => $_,})->first->TEST } @{$deps->{children}->{Parallel}}),
+            (
+                map { schema->resultset("Jobs")->search({id => $_,})->first->TEST } @{
+                    schema->resultset("Jobs")->search(
+                        {
+                            id => $j->{id},
+                        }
+                    )->first->dependencies->{children}->{Parallel}}
+            ),
             exists $j->{settings}->{PARALLEL_WITH} ? split(/,/, $j->{settings}->{PARALLEL_WITH}) : ());
     }
 

@@ -582,13 +582,9 @@ sub filter_jobs {
             })->first->dependencies;
 
         @filtered_jobs = grep { $_->{id} ne $j->{id} } @filtered_jobs
-          if grep { !exists $allocated_tests->{$_ . join(".", @{$j->{settings}}{@k})} }
-          map { schema->resultset("Jobs")->search({id => $_,})->first->TEST } @{$deps->{children}->{Parallel}};
-
-        next unless exists $j->{settings}->{PARALLEL_WITH};
-        @filtered_jobs = grep { $_->{id} ne $j->{id} } @filtered_jobs
-          if grep { !exists $allocated_tests->{$_ . join(".", @{$j->{settings}}{@k})} }
-          split(/,/, $j->{settings}->{PARALLEL_WITH});
+          if grep { !exists $allocated_tests->{$_ . join(".", @{$j->{settings}}{@k})} } (
+            (map { schema->resultset("Jobs")->search({id => $_,})->first->TEST } @{$deps->{children}->{Parallel}}),
+            exists $j->{settings}->{PARALLEL_WITH} ? split(/,/, $j->{settings}->{PARALLEL_WITH}) : ());
     }
 
     return @filtered_jobs;

@@ -649,6 +649,7 @@ for CHAINED dependencies:
  + if child is clone, find the latest clone and clone it
 
 =cut
+
 sub duplicate {
     my ($self, $args) = @_;
     $args ||= {};
@@ -760,7 +761,7 @@ sub duplicate {
                 }
                 else {
                     # find the current clone and try to duplicate that one
-                    while ($c->clone) {
+                    if ($c->clone) {
                         $c = $c->clone;
                     }
                     %dups = $c->duplicate({jobs_map => $jobs_map});

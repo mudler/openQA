@@ -63,6 +63,9 @@ use constant CAPTURE_LOOP_AVOIDANCE => $ENV{OPENQA_SCHEDULER_CAPTURE_LOOP_AVOIDA
 # Default is enabled as CONGESTION_CONTROL.
 use constant BUSY_BACKOFF => $ENV{OPENQA_SCHEDULER_BUSY_BACKOFF} // CONGESTION_CONTROL;
 
+# set it to the number of worker that will try to allocate in one round
+use constant MAX_WORKER_ALLOCATION => $ENV{OPENQA_SCHEDULER_MAX_WORKER_ALLOCATION} // 20;
+
 # monkey patching for debugging IPC
 sub _is_method_allowed {
     my ($self, $method) = @_;

@@ -32,6 +32,7 @@ BEGIN {
     $ENV{OPENQA_SCHEDULER_MAX_BACKOFF}            = 4000;
     $ENV{OPENQA_SCHEDULER_CAPTURE_LOOP_AVOIDANCE} = 38000;
     $ENV{OPENQA_SCHEDULER_WAKEUP_ON_REQUEST}      = 0;
+    $ENV{OPENQA_SCHEDULER_MAX_WORKER_ALLOCATION}  = 80;
     $ENV{FULLSTACK}                               = 1 if $ENV{SCHEDULER_FULLSTACK};
     path($FindBin::Bin, "data")->child("openqa.ini")->copy_to(path($ENV{OPENQA_CONFIG})->child("openqa.ini"));
     path($FindBin::Bin, "data")->child("database.ini")->copy_to(path($ENV{OPENQA_CONFIG})->child("database.ini"));

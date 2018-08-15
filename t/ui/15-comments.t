@@ -29,6 +29,7 @@ use Test::Mojo;
 use Test::Warnings;
 use OpenQA::Test::Case;
 use OpenQA::SeleniumTest;
+use utf8;
 
 my $test_case = OpenQA::Test::Case->new;
 $test_case->init_data;

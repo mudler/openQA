@@ -8,7 +8,7 @@ set -e
 [ "$DEBUG" -eq 1 ] && set -x
 
 # First, try to upgrade all container dependencies (or we won't catch bugs until a new docker image is built)
-#sudo zypper --gpg-auto-import-keys -n ref --force && sudo zypper up -l -y
+[ "$INSTALL_FROM_CPAN" -eq 0 ] && sudo zypper --gpg-auto-import-keys -n ref --force && sudo zypper up -l -y
 
 cp -rd /opt/openqa /opt/testing_area
 

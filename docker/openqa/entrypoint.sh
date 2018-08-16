@@ -1,7 +1,7 @@
 #!/bin/bash
 
 DEBUG="${DEBUG:-0}"
-INSTALL_FROM_CPAN="${INSTALL_FROM_CPAN:-0}"
+INSTALL_FROM_CPAN="${INSTALL_FROM_CPAN:-1}"
 export LANG="en_US.UTF-8"
 export LC_ALL="en_US.UTF-8"
 set -e

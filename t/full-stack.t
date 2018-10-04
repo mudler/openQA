@@ -50,6 +50,7 @@ use Test::Output 'stderr_like';
 use Data::Dumper;
 use IO::Socket::INET;
 use POSIX '_exit';
+use OpenQA::Worker::Cache::Client;
 use Fcntl ':mode';
 use DBI;
 use Mojo::IOLoop::ReadWriteProcess::Session 'session';
@@ -76,6 +77,7 @@ my $livehandlerpid;
 my $resourceallocatorpid;
 my $sharedir = setup_share_dir($ENV{OPENQA_BASEDIR});
 
+my $cache_client = OpenQA::Worker::Cache::Client->new;
 
 sub turn_down_stack {
     for my $pid ($workerpid, $wspid, $livehandlerpid, $resourceallocatorpid) {
@@ -132,7 +134,7 @@ $livehandlerpid = create_live_view_handler($mojoport);
 
 my $JOB_SETUP
   = 'ISO=Core-7.2.iso DISTRI=tinycore ARCH=i386 QEMU=i386 QEMU_NO_KVM=1 '
-  . 'FLAVOR=flavor BUILD=1 MACHINE=coolone QEMU_NO_TABLET=1 INTEGRATION_TESTS=1 '
+  . 'FLAVOR=flavor BUILD=1 MACHINE=coolone QEMU_NO_T OpenQA::Worker::Cache::ClientABLET=1 INTEGRATION_TESTS=1 '
   . 'QEMU_NO_FDC_SET=1 CDMODEL=ide-cd HDDMODEL=ide-drive VERSION=1 TEST=core PUBLISH_HDD_1=core-hdd.qcow2 '
   . 'UEFI_PFLASH_VARS=/usr/share/qemu/ovmf-x86_64.bin';
 
@@ -312,9 +314,10 @@ close($conf);
 
 ok(-e path($ENV{OPENQA_CONFIG})->child("workers.ini"), "Config file created.");
 
+
 $worker_cache_service->start;
 $cache_service->start;
-
+ diag "Waiting for cache service to be available" and sleep 5 until $cache_client->available;
 # For now let's repeat the cache tests before extracting to separate test
 subtest 'Cache tests' => sub {
 

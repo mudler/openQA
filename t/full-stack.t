@@ -390,7 +390,7 @@ subtest 'Cache tests' => sub {
         $filename = $cache_location->child("$_.qcow2");
         open(my $tmpfile, '>', $filename);
         print $tmpfile $filename;
-        $sql = "INSERT INTO assets (filename,etag,last_use) VALUES (0, ?, 'Not valid', strftime('%s','now'));";
+        $sql = "INSERT INTO assets (filename,etag,last_use) VALUES ( ?, 'Not valid', strftime('%s','now'));";
         $sth = $dbh->prepare($sql);
         $sth->bind_param(1, $filename);
         $sth->execute();

@@ -414,9 +414,10 @@ subtest 'Gru tasks limit' => sub {
 };
 
 subtest 'Gru tasks TTL' => sub {
-    my $job_id = $t->app->gru->enqueue(limit_assets => [] => {priority => 10, ttl => -5});
+    my $job_id = $t->app->gru->enqueue(limit_assets => [] => {priority => 10, ttl => -99999});
     $c->run('run', '-o');
     my $result = $t->app->minion->job($job_id)->info->{result};
+    is ref $result, 'HASH', "Result should error and return a hash ref";
     is $result->{error}, 'TTL Expired', 'TTL Expired - job discarded' or diag explain $result;
 
     $job_id = $t->app->gru->enqueue(limit_assets => [] => {priority => 10, ttl => 20});

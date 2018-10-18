@@ -294,20 +294,18 @@ sub update_asset {
         my $db  = $self->dbh->db;
         my $tx  = $db->begin('exclusive');
         my $sql = q(UPDATE assets set etag =? , size = ?, last_use = strftime('%s','now') where filename = ?;);
-        $db->query($sql, $etag, $size, $asset);
+        $tx->db->query($sql, $etag, $size, $asset);
         $tx->commit;
     };
     if ($@) {
         log_error "Update asset $asset failed. Rolling back $@";
+        return !!0;
     }
     else {
         log_info "CACHE: updating the $asset with $etag and $size";
     }
 
-    my $result = $self->dbh->db->select('assets', [qw(etag size last_use filename)], {filename => $asset})->arrays;
-
-    return !!0 if $result->size == 0 || $@;
-    $self->increase($size) and return !!1 if $result->size == 1;
+    $self->increase($size) and return !!1;
 }
 
 sub purge_asset {

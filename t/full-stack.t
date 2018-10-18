@@ -331,6 +331,9 @@ subtest 'Cache tests' => sub {
 
     my $cache_client = OpenQA::Worker::Cache::Client->new;
 
+    fail 'Failed starting cache Service' unless $cache_service->is_running;
+    fail 'Failed starting cache service worker' unless $worker_cache_service->is_running;
+
     sleep 5 and diag "Waiting for cache service to be available"        until $cache_client->available;
     sleep 5 and diag "Waiting for cache service worker to be available" until $cache_client->available_workers;
 
